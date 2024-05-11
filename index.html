@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8"/>
+
+		<title>CubeWorldViewer by Christoffer Olofsson</title>
+
+		<!--
+			Special thanks to FlashMonkey - http://www.flashmonkey.co.uk/css-3d-cube-tutorial/
+		-->
+
+		<style>
+			body
+			{
+				overflow: hidden;
+			}
+
+			canvas
+			{
+				image-rendering: optimizeSpeed;				/* Older versions of FF				*/
+				image-rendering: -moz-crisp-edges;			/* FF 6.0+							*/
+				image-rendering: -webkit-optimize-contrast;	/* Safari							*/
+				image-rendering: -o-crisp-edges;			/* OS X & Windows Opera (12.02+)	*/
+				image-rendering: pixelated;					/* Awesome future-browsers			*/
+				-ms-interpolation-mode: nearest-neighbor;	/* IE								*/
+			}
+
+			label
+			{
+				display: block;
+			}
+
+			#settings
+			{
+				position: absolute;
+				float: left;
+				z-index: 1;
+			}
+
+			#error
+			{
+				color: red;
+			}
+
+			.hidden
+			{
+				display: none;
+			}
+
+			#cube-world-axis
+			{
+				display: list-item;
+			}
+
+			#cube-world
+			{
+				position: relative;
+				top: 25%;
+				transform: translate(-50%, -50%);
+
+				margin: 0 auto;
+				-webkit-transform-style: preserve-3d;
+
+				/* Disable user interaction with text */
+				-webkit-touch-callout:	none;	/* iOS Safari */
+				-webkit-user-select:	none;	/* Chrome/Safari/Opera */
+				-khtml-user-select:		none;	/* Konqueror */
+				-moz-user-select:		none;	/* Firefox */
+				-ms-user-select:		none;	/* IE/Edge */
+				user-select:			none;	/* non-prefixed version, currently not supported by any browser */
+			}
+
+			.face
+			{
+				position: absolute;
+				backface-visibility: hidden;
+			}
+
+			#north, #south
+			{
+				position: absolute;
+				text-align: center;
+			}
+
+			#north
+			{
+				color: red;
+			}
+
+			#south
+			{
+				color: blue;
+			}
+		</style>
+		
+		<script>
+			'use strict';
+
+			var sizeHalf;
+			var divError;
+			var inputMapSelector;
+			var inputRotation;
+			var poleNorth;
+			var poleSouth;
+			var cubeWorld;
+			var cubeWorldAxis;
+			var northHalfWidth;
+			var southHalfWidth;
+			var manuelChangeRateX;
+			var manuelChangeRateY;
+
+			var faces = [];
+			var axisRatioX = 7/8;
+			var axisRatioY = 0;
+			var axisRatioZ = 0;
+			var lastTimestamp = new Date().getTime();
+			var lastCoordinateX = null;
+			var lastCoordinateY = null;
+			var isMouseButtonDown = false;
+			var cubeWorldAxisAngle = 0;
+
+			var cubeWorldAxisAngleAverage = 0;//23.3;
+			var cubeWorldAxisAngleSpread = 2.4;
+			var angleOscillatePerSecond = 0;//.1;
+			var rotationsPerSecondsClockwise = 1/8;
+
+			function onload()
+			{
+				window.requestAnimationFrame(updateFrame);
+				document.onmousemove = trackCursor;
+				document.onmousedown = mouseClickDown;
+				document.onmouseup = mouseClickUp;
+				window.addEventListener('touchmove', handleTouch, false);
+				window.addEventListener('touchend', handleTouchEnd, false);
+				window.onresize = recalculateSize;
+				window.onhashchange = function()
+				{
+					inputMapSelector.value = window.location.hash.substr(1);
+					updateCube();
+				};
+
+				divError = document.getElementById('error');
+				poleNorth = document.getElementById('north');
+				poleSouth = document.getElementById('south');
+				inputMapSelector = document.getElementById('inputMapSelector');
+				inputRotation = document.getElementById('inputRotation');
+				cubeWorld = document.getElementById('cube-world');
+				cubeWorldAxis = document.getElementById('cube-world-axis');
+
+				northHalfWidth = poleNorth.offsetWidth/2;
+				southHalfWidth = poleSouth.offsetWidth/2;
+				inputRotation.value = rotationsPerSecondsClockwise;
+
+				for(var f = 0; f < 6; f++)
+				{
+					faces[f] = document.getElementById('face' + f);
+				}
+
+				recalculateSize();
+
+				if(1 < window.location.hash.length)
+				{
+					var predefinedMap = window.location.hash.substr(1);
+
+					inputMapSelector.value = predefinedMap;
+					initNewCube(predefinedMap)
+				}
+				else
+				{
+					updateCube();
+				}
+			}
+
+			function updateFrame()
+			{
+				var now = new Date().getTime();
+				var seconds = (now - lastTimestamp)/1000;
+				lastTimestamp = now;
+
+				if(lastCoordinateX === null || lastCoordinateY === null)
+				{
+					axisRatioX += rotationsPerSecondsClockwise*seconds;
+				}
+				cubeWorldAxisAngle += angleOscillatePerSecond*seconds;
+
+				axisRatioX %= 1;
+				cubeWorldAxisAngle %= 1;
+
+				var axisAngle = cubeWorldAxisAngleSpread*Math.sin(cubeWorldAxisAngle*Math.PI*2) + cubeWorldAxisAngleAverage;
+
+				cubeWorldAxis.style.transform = 'rotate(' + axisAngle + 'deg)';
+				cubeWorld.style.webkitTransform = 'rotateX(' + axisRatioY*360 + 'deg) rotateY(' + axisRatioX*360 + 'deg) rotateZ(' + axisRatioZ*360 + 'deg)';
+
+				var poleOrientation = 'rotateY(' + -axisRatioX*360 + 'deg) rotateX(' + -axisRatioY*360 + 'deg) rotateZ(' + -axisAngle + 'deg)';
+				poleNorth.style.transform = 'translate3d(' + (sizeHalf - northHalfWidth) + 'px, ' + -sizeHalf + 'px, 0px) ' + poleOrientation;
+				poleSouth.style.transform = 'translate3d(' + (sizeHalf - southHalfWidth) + 'px, ' + sizeHalf*3 + 'px, 0px) ' + poleOrientation;
+
+				window.requestAnimationFrame(updateFrame);
+			}
+
+			function mouseClickDown(mouseEvent)
+			{
+				if(mouseEvent.srcElement === inputRotation)
+				{
+					return;
+				}
+
+				isMouseButtonDown = true;
+			}
+
+			function mouseClickUp(mouseEvent)
+			{
+				if(mouseEvent.srcElement === inputRotation)
+				{
+					return;
+				}
+
+				handleManuelCubeRotationEnd();
+			}
+
+			function handleTouchEnd(mouseEvent)
+			{
+				if(mouseEvent.srcElement === inputRotation)
+				{
+					return;
+				}
+
+				handleManuelCubeRotationEnd();
+			}
+
+			function trackCursor()
+			{
+				if(isMouseButtonDown)
+				{
+					handleManuelCubeRotation(event.pageX, event.pageY);
+				}
+			}
+
+			function handleTouch(event)
+			{
+				if(mouseEvent.srcElement === inputRotation)
+				{
+					return;
+				}
+
+				handleManuelCubeRotation(event.touches[0].pageX, event.touches[0].pageY);
+			}
+
+			function handleManuelCubeRotation(coordinateX, coordinateY)
+			{
+				var now = new Date().getTime();
+				var timeDiff = (now - lastTimestamp);
+				lastTimestamp = now;
+
+				if(lastCoordinateX !== null && lastCoordinateY !== null)
+				{
+					var pageChangeRatioX = (coordinateX - lastCoordinateX) / window.innerWidth;
+					var pageChangeRatioY = (coordinateY - lastCoordinateY) / window.innerHeight;
+
+					axisRatioX += pageChangeRatioX;
+					axisRatioY += -pageChangeRatioY;
+					axisRatioZ = axisRatioZ;
+				}
+
+				axisRatioX %= 1;
+				axisRatioY %= 1;
+				axisRatioZ %= 1;
+
+				manuelChangeRateX = (coordinateX - lastCoordinateX) / timeDiff;
+				manuelChangeRateY = (coordinateY - lastCoordinateY) / timeDiff;
+
+				lastCoordinateX = coordinateX;
+				lastCoordinateY = coordinateY;
+			}
+
+			function handleManuelCubeRotationEnd()
+			{
+				lastCoordinateX = null;
+				lastCoordinateY = null;
+				isMouseButtonDown = false;
+
+				if(!isNaN(parseFloat(manuelChangeRateX)) && isFinite(manuelChangeRateX)) // Test if valid number
+				{
+					inputRotation.value = manuelChangeRateX;
+					changeRotationSpeed();
+				}
+			}
+
+			function recalculateSize()
+			{
+				var windowsSize = window.innerWidth < window.innerHeight ? window.innerWidth : window.innerHeight;
+
+				var size = windowsSize/2;
+				sizeHalf = size/2;
+
+				cubeWorld.style.width = size + 'px';
+				cubeWorld.style.height = size + 'px';
+
+				for(var f = 0; f < 6; f++)
+				{
+					var face = faces[f];
+
+					face.style.width = size + 'px';
+					face.style.height = size + 'px';
+
+					var style = '';
+					switch(f)
+					{
+						case 0:
+							style = 'rotateX(55deg) rotateY(45deg) rotateZ(270deg) translateZ(';
+							break;
+
+						case 1:
+							style = 'rotateX(325deg) rotateY(0deg) rotateZ(45deg) translateZ(';
+							break;
+
+						case 2:
+							style = 'rotateX(55deg) rotateY(135deg) rotateZ(270deg) translateZ(';
+							break;
+
+						case 3:
+							style = 'rotateX(145deg) rotateY(0deg) rotateZ(135deg) translateZ(';
+							break;
+
+						case 4:
+							style = 'rotateX(55deg) rotateY(315deg) rotateZ(90deg) translateZ(';
+							break;
+
+						case 5:
+							style = 'rotateX(55deg) rotateY(225deg) rotateZ(270deg) translateZ(';
+							break;
+					}
+
+					face.style.webkitTransform = style + sizeHalf + 'px)';
+				}
+
+				cubeWorld.style.marginTop = ((window.innerHeight - cubeWorld.offsetWidth)/2) + 'px';
+			}
+
+			function updateCube()
+			{
+				var selectedValue = inputMapSelector.options[inputMapSelector.selectedIndex];
+
+				if(selectedValue === undefined)
+				{
+					onerror();
+					return;
+				}
+
+				initNewCube(selectedValue.value);
+			}
+
+			function changeRotationSpeed()
+			{
+				rotationsPerSecondsClockwise = inputRotation.value;
+			}
+
+			function initNewCube(selectedMap)
+			{
+				window.location.hash = selectedMap;
+
+				var rootImg = new Image();
+				rootImg.src = selectedMap;
+
+				rootImg.onload = function()
+				{
+					cubeWorld.className = '';
+					divError.className = 'hidden';
+
+					var canvas = document.createElement('canvas');
+					canvas.width = rootImg.width;
+					canvas.height = rootImg.height;
+
+					var context = canvas.getContext('2d');
+					context.drawImage(rootImg, 0, 0, rootImg.width, rootImg.height);
+
+					var faceSize = rootImg.height/2;
+
+					var length = faces.length;
+					var lengthHalf = length/2;
+					for(var f = 0; f < length; f++)
+					{
+						var face = faces[f];
+						face.width = faceSize;
+						face.height = faceSize;
+
+						var imgData = context.getImageData(faceSize*(f%lengthHalf), faceSize*Math.floor(f/lengthHalf), faceSize, faceSize);
+						face.getContext('2d').putImageData(imgData, 0, 0);
+					}
+				};
+
+				rootImg.onerror = onerror;
+			}
+
+			function onerror()
+			{
+				cubeWorld.className = 'hidden';
+				divError.className = '';
+			}
+		</script>
+	</head>
+	
+	<body onload="onload()">
+		<div id="wrapper">
+			<form id="settings">
+				<label for="inputMapSelector">
+					Map:
+				</label>
+
+				<select id="inputMapSelector" name="Map" onchange="updateCube()">
+					<!--TEST_MAPS-->
+					<option value='CubeWorlds/1337/09/0_WorldMap-1491425136565.png'>1337/09/WorldMap-1491425136565</option>
+					<option value='CubeWorlds/1337/09/1_BodyMap-1491425136565.png'>1337/09/BodyMap-1491425136565</option>
+					<option value='CubeWorlds/1337/09/2_HeightMap-1491425136565 (Min -0.17, Max 0.51).png'>1337/09/HeightMap-1491425136565 (Min -0.17, Max 0.51)</option>
+					<!--/TEST_MAPS-->
+				</select>
+
+				<label for="inputRotation">
+					Rotation:
+				</label>
+
+				<input id="inputRotation" name="Rotation" type="number" step="any" onchange="changeRotationSpeed()"/>
+
+				<p id="error" class="hidden">An error accrued.</p>
+			</form>
+
+			<div id="cube-world-axis">
+				<div id="cube-world">
+					<span id="north">N</span>
+					<canvas class="face" id="face0"></canvas>
+					<canvas class="face" id="face1"></canvas>
+					<canvas class="face" id="face2"></canvas>
+					<canvas class="face" id="face3"></canvas>
+					<canvas class="face" id="face4"></canvas>
+					<canvas class="face" id="face5"></canvas>
+					<span id="south">S</span>
+				</div>
+			</div>
+		</div>
+	</body>
+</html>

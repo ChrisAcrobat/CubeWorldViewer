@@ -1,1 +1,1 @@
-# CubeWorldViewer
+This is an extract from old resume like project that has not been online for years. It's now live on [GitHub Pages](https://chrisacrobat.github.io/CubeWorldViewer), go there to see it in action.
