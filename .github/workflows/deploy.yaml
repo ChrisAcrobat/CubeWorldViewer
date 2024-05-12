@@ -62,10 +62,14 @@ jobs:
               }
             }
 
-            fs.readFile('index.html', 'utf-8').then(data => {
-              mapOptions(root+'CubeWorlds/', root+'CubeWorlds/').then(awaitArray).then(options => {
-                data = data.replace(new RegExp(/\n.*<!--TEST_MAPS-->[\s\S]*<!--\/TEST_MAPS-->/g), options)
-                fs.writeFile(root+'index.html', data, 'utf-8')
+            fs.mkdir(root).then(() => {
+              fs.rename('CubeWorlds', root+'CubeWorlds').then(() => {
+                fs.readFile('index.html', 'utf-8').then(data => {
+                  mapOptions(root+'CubeWorlds/', root+'CubeWorlds/').then(awaitArray).then(options => {
+                    data = data.replace(new RegExp(/\n.*<!--TEST_MAPS-->[\s\S]*<!--\/TEST_MAPS-->/g), options)
+                    fs.writeFile(root+'index.html', data, 'utf-8')
+                  })
+                })
               })
             })
       - name: Setup Pages
