@@ -29,7 +29,7 @@ jobs:
         with:
           script: |
             let data = fs.readFileSync('index.html', 'utf-8')
-            data = data.replace(new RegEx('<!--TEST_MAPS-->.*<!--/TEST_MAPS-->'), '<!--And it's gone!-->')
+            data = data.replace(new RegEx('<!--TEST_MAPS-->.*<!--/TEST_MAPS-->'), '<!--And it\'s gone!-->')
             fs.writeFileSync('index.html', data, 'utf-8')
       - name: Setup Pages
         uses: actions/configure-pages@v5
