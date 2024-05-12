@@ -42,7 +42,10 @@ jobs:
                       const mapUrl = directory+directoryContent
                       let mapName = directoryContent.substr(2)         // Remove 'n_'
                       mapName = mapName.substring(0, mapName.length-4) // Remove '.PNG'
+                      console.log('root', root)
+                      console.log('mapName', mapName)
                       mapName = mapName.replace(root, '')              // Remove 'CubeWorlds/'
+                      console.log('mapName2', mapName)
                       return '\n\t\t\t\t\t<option value="'+mapUrl+'">'+mapName+'</option>'
                     }
                   }))
