@@ -31,20 +31,18 @@ jobs:
             const fs = require('node:fs/promises')
             const root = 'build/'
 
-            function mapOptions(directory){
+            function mapOptions(directory, origin){
               return fs.readdir(directory).then(directoryContents => {
                 const promises = []
                 directoryContents.forEach(directoryContent => {
                   promises.push(fs.lstat(directory+directoryContent).then(stat => {
                     if(stat.isDirectory()){
-                      return mapOptions(directory+directoryContent+'/')
+                      return mapOptions(directory+directoryContent+'/', origin)
                     }else{
                       const mapUrl = directory.replace(root, '')+directoryContent
-                      let size = directory.substring(0, directory.length-1)
-                      size = +size.substring(size.lastIndexOf('/')+1)
-                      let mapName = directoryContent.substring(2)                                        // Remove 'n_'
-                      mapName = mapName.substring(0, mapName.length-4)                                   // Remove '.PNG'
-                      mapName = mapName+' (Size: '+size+')' // Add size
+                      let mapName = directoryContent.substring(2)      // Remove 'n_'
+                      mapName = mapName.substring(0, mapName.length-4) // Remove '.PNG'
+                      mapName = directory.replace(origin, '')+mapName; // Remove origin
                       return '\n\t\t\t\t\t<option value="'+mapUrl+'">'+mapName+'</option>'
                     }
                   }))
@@ -67,7 +65,7 @@ jobs:
             fs.mkdir(root).then(() => {
               fs.rename('CubeWorlds', root+'CubeWorlds').then(() => {
                 fs.readFile('index.html', 'utf-8').then(data => {
-                  mapOptions(root+'CubeWorlds/').then(awaitArray).then(options => {
+                  mapOptions(root+'CubeWorlds/', root+'CubeWorlds/').then(awaitArray).then(options => {
                     data = data.replace(new RegExp(/\n.*<!--TEST_MAPS-->[\s\S]*<!--\/TEST_MAPS-->/g), options)
                     fs.writeFile(root+'index.html', data, 'utf-8')
                   })
