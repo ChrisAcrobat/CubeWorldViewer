@@ -44,7 +44,7 @@ jobs:
                       size = +size.substring(size.lastIndexOf('/')+1)
                       let mapName = directoryContent.substring(2)                                        // Remove 'n_'
                       mapName = mapName.substring(0, mapName.length-4)                                   // Remove '.PNG'
-                      mapName = mapName+' (Size: '+directory.substring(directory.lastIndexOf('/')+1)+')' // Add size
+                      mapName = mapName+' (Size: '+size+')' // Add size
                       return '\n\t\t\t\t\t<option value="'+mapUrl+'">'+mapName+'</option>'
                     }
                   }))
