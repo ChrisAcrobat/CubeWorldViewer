@@ -30,8 +30,7 @@ jobs:
           script: |
             const fs = require('fs')
             let data = fs.readFileSync('index.html', 'utf-8')
-            data = data.replace(new RegExp('/<!--TEST_MAPS-->[\s\S]*<!--\/TEST_MAPS-->/gm'), '<!--And it\'s gone!-->')
-            console.log(data)
+            data = data.replace(new RegExp(/<!--TEST_MAPS-->[\s\S]*<!--\/TEST_MAPS-->/g), '<!--And it\'s gone!-->')
             fs.writeFileSync('index.html', data, 'utf-8')
       - name: Setup Pages
         uses: actions/configure-pages@v5
