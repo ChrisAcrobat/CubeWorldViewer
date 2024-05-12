@@ -28,6 +28,7 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
+            const fs = require('fs')
             let data = fs.readFileSync('index.html', 'utf-8')
             data = data.replace(new RegEx('<!--TEST_MAPS-->.*<!--/TEST_MAPS-->'), '<!--And it\'s gone!-->')
             fs.writeFileSync('index.html', data, 'utf-8')
