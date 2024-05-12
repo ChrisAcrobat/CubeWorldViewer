@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  Deploy:
     environment:
       name: Build & Deploy
       url: ${{ steps.deployment.outputs.page_url }}
