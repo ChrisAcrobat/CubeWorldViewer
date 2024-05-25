@@ -31,21 +31,17 @@ jobs:
 
             function mapOptions(directory, origin){
               return fs.readdir(directory).then(directoryContents => {
-                const promises = []
-                directoryContents.forEach(directoryContent => {
-                  promises.push(fs.lstat(directory+directoryContent).then(stat => {
-                    if(stat.isDirectory()){
-                      return mapOptions(directory+directoryContent+'/', origin)
-                    }else{
-                      const mapUrl = encodeURI(directory.replace(root, '')+directoryContent)
-                      let mapName = directoryContent.substring(2)      // Remove 'n_'
-                      mapName = mapName.substring(0, mapName.length-4) // Remove '.PNG'
-                      mapName = directory.replace(origin, '')+mapName; // Remove origin
-                      return '\n\t\t\t\t\t<option value="'+mapUrl+'">'+mapName+'</option>'
-                    }
-                  }))
-                })
-                return promises
+              const promises = []
+              directoryContents.forEach(directoryContent => {
+                promises.push(fs.lstat(directory+directoryContent).then(stat => {
+                if(stat.isDirectory()){
+                  return mapOptions(directory+directoryContent+'/', origin)
+                }else{
+                  return directory.replace(root, '')+directoryContent
+                }
+                }))
+              })
+              return promises
               })
             }
 
@@ -56,7 +52,7 @@ jobs:
               if(promises[0].then){
                 return Promise.all(promises).then(awaitArray)
               }else{
-                return promises.join('')
+                return promises
               }
             }
 
@@ -64,7 +60,39 @@ jobs:
               fs.rename('CubeWorlds', root+'CubeWorlds').then(() => {
                 fs.readFile('index.html', 'utf-8').then(data => {
                   mapOptions(root+'CubeWorlds/', root+'CubeWorlds/').then(awaitArray).then(options => {
-                    data = data.replace(new RegExp(/\n.*<!--TEST_MAPS-->[\s\S]*<!--\/TEST_MAPS-->/g), options)
+                    let jsonString = ''
+                    let previousSetting = ''
+                    options.forEach((option, index) => {
+                      let setting = option.split('/')
+                      const map = setting.pop()
+                      setting = setting.join('/')
+                      if(previousSetting !== setting){
+                        if(previousSetting){
+                          jsonString += `\n\t\t\t\t\t}\n\t\t\t\t},{\n\t\t\t\t\t'${setting}': {`
+                        }else{
+                          jsonString += `'${setting}': {`
+                        }
+                        previousSetting = setting
+                      }
+                      let type = +map[0]
+                      switch(type){
+                        case 0:
+                          type = 'WorldMap'
+                          break
+                        case 1:
+                          type = 'BodyMap'
+                          break
+                        case 2:
+                          type = 'HeightMap'
+                          break
+                      }
+                      jsonString += `\n\t\t\t\t\t\t'${type}': '${map}'`
+                      if(index%3 < 2){
+                        jsonString += `,`
+                      }
+                    })
+                    jsonString += `\n\t\t\t\t\t}`
+                    data = data.replace(new RegExp(/\/\*TEST_MAPS\*\/[\s\S]*\/\*\/TEST_MAPS\*\//g), jsonString)
                     fs.writeFile(root+'index.html', data, 'utf-8')
                   })
                 })
