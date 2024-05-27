@@ -31,17 +31,17 @@ jobs:
 
             function mapOptions(directory, origin){
               return fs.readdir(directory).then(directoryContents => {
-              const promises = []
-              directoryContents.forEach(directoryContent => {
-                promises.push(fs.lstat(directory+directoryContent).then(stat => {
-                if(stat.isDirectory()){
-                  return mapOptions(directory+directoryContent+'/', origin)
-                }else{
-                  return directory.replace(root, '')+directoryContent
-                }
-                }))
-              })
-              return promises
+                const promises = []
+                directoryContents.forEach(directoryContent => {
+                  promises.push(fs.lstat(directory+directoryContent).then(stat => {
+                  if(stat.isDirectory()){
+                    return mapOptions(directory+directoryContent+'/', origin)
+                  }else{
+                    return directory.replace(root, '')+directoryContent
+                  }
+                  }))
+                })
+                return promises
               })
             }
 
@@ -76,7 +76,7 @@ jobs:
                       setting = setting.join('/')
                       if(previousSetting !== setting){
                         if(previousSetting){
-                          jsonString += `\n\t\t\t\t\t}\n\t\t\t\t},{\n\t\t\t\t\t'${setting}': {`
+                          jsonString += `\n\t\t\t\t},\n\t\t\t\t'${setting}': {`
                         }else{
                           jsonString += `'${setting}': {`
                         }
@@ -94,12 +94,12 @@ jobs:
                           type = 'HeightMap'
                           break
                       }
-                      jsonString += `\n\t\t\t\t\t\t'${type}': '${map}'`
+                      jsonString += `\n\t\t\t\t\t'${type}': '${map}'`
                       if(index%3 < 2){
                         jsonString += `,`
                       }
                     })
-                    jsonString += `\n\t\t\t\t\t}`
+                    jsonString += `\n\t\t\t\t}`
                     data = data.replace(new RegExp(/\/\*TEST_MAPS\*\/[\s\S]*\/\*\/TEST_MAPS\*\//g), jsonString)
                     fs.writeFile(root+'index.html', data, 'utf-8')
                   })
