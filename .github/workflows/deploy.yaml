@@ -57,6 +57,14 @@ jobs:
             }
 
             fs.mkdir(root).then(() => {
+              [
+                'three.min.js',
+                'OrbitControls.deprecated.js'
+              ].forEach(file => 
+                fs.readFile(file, 'utf-8').then(data => {
+                  fs.writeFile(root+file, data, 'utf-8')
+                }
+              ))
               fs.rename('CubeWorlds', root+'CubeWorlds').then(() => {
                 fs.readFile('index.html', 'utf-8').then(data => {
                   mapOptions(root+'CubeWorlds/', root+'CubeWorlds/').then(awaitArray).then(options => {
