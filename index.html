@@ -116,6 +116,7 @@
 				updateCube();
 			}
 			function updateCube(selected){
+				document.getElementById('inputDisplacementScale').disabled = !inputSphere.checked;
 				if(!selected){
 					selected = inputMapSelector.options[inputMapSelector.selectedIndex].value;
 				}
@@ -200,11 +201,11 @@
 							material.needsUpdate = true;
 							material.map = new THREE.CanvasTexture(textures[index]);
 							material.map.needsUpdate = true;
-							material.bumpMap = new THREE.CanvasTexture(displacementMaps[index]);
-							material.bumpMapScale = 0.015;
-							material.bumpMap.needsUpdate = true;
+						//	material.bumpMap = new THREE.CanvasTexture(displacementMaps[index]);
+						//	material.bumpMapScale = document.getElementById('inputBumpMapScale').valueAsNumber;
+						//	material.bumpMap.needsUpdate = true;
 							material.displacementMap = inputSphere.checked ? new THREE.CanvasTexture(displacementMaps[index]) : null;
-							material.displacementScale = document.getElementById('inputDisplacement').valueAsNumber;
+							material.displacementScale = document.getElementById('inputDisplacementScale').valueAsNumber;
 							if(material.displacementMap){
 								material.displacementMap.needsUpdate = true;
 							}
@@ -231,6 +232,12 @@
 					</label>
 					<input id="inputRotation" name="Rotation" type="number" step="any"/>
 				</div>
+			<!--<div>
+					<label for="inputBumpMapScale">
+						Bump map scale:
+					</label>
+					<input id="inputBumpMapScale" name="Sphere" type="range" min="0" max="1" step=".01" value="0.5" oninput="updateCube()"/>
+				</div>-->
 				<div>
 					<label for="inputSphere">
 						Sphere:
@@ -238,10 +245,10 @@
 					<input id="inputSphere" name="Sphere" type="checkbox" onchange="updateCube()"/>
 				</div>
 				<div>
-					<label for="displacement">
-						Bumpy:
+					<label for="inputDisplacementScale">
+						Displacement map scale:
 					</label>
-					<input id="inputDisplacement" name="Sphere" type="range" min="0" max="1" step=".01" value="0.1" oninput="updateCube()"/>
+					<input id="inputDisplacementScale" name="Sphere" type="range" min="0" max="1" step=".01" value="0.1" oninput="updateCube()"/>
 				</div>
 			</form>
 
